@@ -47,6 +47,30 @@ TIME_INDEX_COLS = {"instant", "yr", "days_since_2011"}
 #    build our own lags from the target and test those instead.
 UNVERIFIED_COLS = {"cnt_2d_bfr"}
 
+# The dteday column holds the target date for reindexing; all other columns
+# fall into FORBIDDEN or are valid raw features to be processed.
+COLUMNS = {"dteday"}
+
+# Raw feature columns: these appear in data/raw/bike_daily.csv and are either
+# transformed in build_features (calendar, weather, lags) or passed through as
+# is (season, holiday, weekday, temp, etc.). Adding them to ALLOWED_RAW_COLS
+# ensures any new column appearing in the raw CSV is explicitly classified.
+FEATURES_RAW = {
+    "season",      # seasonal category
+    "mnth",        # month of year
+    "holiday",     # whether a holiday
+    "weekday",     # day of week
+    "workday",     # whether it's a work day
+    "temp",        # temperature in degrees Celsius
+    "atemp",       # "feels like" temperature
+    "hum",         # humidity in %
+    "windspeed",   # wind speed in m/s
+    "weather",     # weather condition (GOOD/MISTY/BAD)
+}
+
+# Combined classification: raw columns that are either dteday or valid features.
+ALLOWED_RAW_COLS = COLUMNS | FEATURES_RAW
+
 # What feature_columns() and the tests actually enforce.
 FORBIDDEN = LEAKAGE_COLS | TIME_INDEX_COLS | UNVERIFIED_COLS
 

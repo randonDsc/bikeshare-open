@@ -9,7 +9,7 @@ import shutil
 import pandas as pd
 from sklearn.metrics import r2_score
 
-from src.config import LAG_WARMUP, RAW, RAW_SHA256, TARGET
+from src.config import ALLOWED_RAW_COLS, FORBIDDEN, LAG_WARMUP, RAW, RAW_SHA256, TARGET
 from src.features import build_features, feature_columns, reindex_to_calendar
 from src.ingest import load_raw
 from src.train import MODELS, temporal_split
@@ -18,6 +18,31 @@ from src.train import MODELS, temporal_split
 @pytest.fixture(scope="module")
 def raw():
     return load_raw().sort_values("dteday").reset_index(drop=True)
+
+
+def test_no_unclassified_columns_in_raw():
+    """No column in the raw CSV may be unclassified.
+
+    A new column appearing in data/raw/bike_daily.csv that is not in ALLOWED_RAW_COLS
+    or FORBIDDEN would be flagged as unclassified. This test ensures a new column cannot
+    enter the model without being explicitly registered. The error message displays allowed
+    and forbidden columns so adding a new feature to src/config.py is obvious when required.
+    Unclassified columns here are valid raw features to be processed, not forbidden ones.
+    """
+    raw_df = load_raw()
+    raw_columns = set(raw_df.columns)
+
+    # Any column not in ALLOWED_RAW_COLS or FORBIDDEN is suspicious - it would bypass
+    # our feature engineering pipeline and appear in the model without being registered.
+    unclassified = raw_columns - ALLOWED_RAW_COLS - FORBIDDEN
+
+    allowed_cols = sorted(ALLOWED_RAW_COLS)
+    forbidden_cols = sorted(FORBIDDEN)
+
+    assert unclassified == set(), \
+        f"Found {len(unclassified)} columns in raw data that are not classified: " \
+        f"{sorted(unclassified)}. All new columns must be added to src/config.py. " \
+        f"Allowed: ALLOWED_RAW_COLS={allowed_cols}, Forbidden: FORBIDDEN={forbidden_cols}"
 
 
 @pytest.fixture(scope="module")
