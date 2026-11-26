@@ -1,0 +1,6 @@
+# Keep bytes identical across OSes: the raw CSV is hash-checked
+# (sha256 a6bed157...), and bash refuses CRLF in hook scripts.
+* text=auto eol=lf
+data/raw/*.csv -text
+*.png binary
+*.parquet binary
