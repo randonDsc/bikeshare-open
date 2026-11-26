@@ -64,3 +64,44 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+
+def test_cnt_roll_28_excludes_today_and_computes_correct_window_mean():
+    """cnt_roll_28(d) must be the mean of cnt over calendar days [d-28, d-1] (28 days)."""
+    from src.ingest import load_raw
+
+    # Use a named date where we can compute by hand from strictly earlier dates.
+    # 2012-03-15 is in the dataset and has 28 prior calendar days available.
+    TARGET_DATE = "2012-03-15"
+
+    raw = load_raw()
+    feats = build_features(raw)
+    by_date = feats.set_index("dteday")["cnt"]
+
+    if TARGET_DATE not in by_date.index:
+        pytest.skip(f"{TARGET_DATE} not in dataset; check data coverage")
+
+    target_date = pd.Timestamp(TARGET_DATE)
+    # Window: strictly prior 28 days, i.e., [d-28, d-1]
+    window_dates = [target_date - pd.Timedelta(days=k) for k in range(1, 29)]
+
+    # Verify all 28 prior dates exist (enforced by reindex_to_calendar)
+    # Compare Timestamps directly, not .date() which produces plain date objects
+    missing_ts = [dt for dt in window_dates if dt not in by_date.index]
+    assert len(missing_ts) == 0, f"Missing {len(missing_ts)} of the 28 prior calendar days: {missing_ts}"
+
+    # Check that the feature column exists before trying to read it
+    if "cnt_roll_28" not in feats.columns:
+        min_window_date = target_date - pd.Timedelta(days=27)
+        max_window_date = target_date - pd.Timedelta(days=1)
+        raise AssertionError(
+            f"column 'cnt_roll_28' is missing from feature set. "
+            f"It should be the mean of cnt over calendar days [{min_window_date.date()}, {max_window_date.date()}]."
+        )
+
+    cnts = [by_date[dt] for dt in window_dates]
+    expected_mean = sum(cnts) / 28
+    actual = feats.loc[pd.Timestamp(TARGET_DATE), "cnt_roll_28"]
+
+    assert actual == pytest.approx(expected_mean), \
+        f"at {TARGET_DATE.date()}: got {actual}, expected {expected_mean:.4f}"
