@@ -101,7 +101,38 @@ def test_cnt_roll_28_excludes_today_and_computes_correct_window_mean():
 
     cnts = [by_date[dt] for dt in window_dates]
     expected_mean = sum(cnts) / 28
-    actual = feats.loc[pd.Timestamp(TARGET_DATE), "cnt_roll_28"]
+    # feats has a RangeIndex after dropna(), so use .iloc with boolean mask
+    # dteday contains Timestamps, so compare with string or Timestamp directly
+    row_mask = feats.dteday == TARGET_DATE
+    actual = feats.loc[row_mask, "cnt_roll_28"].iloc[0]
 
     assert actual == pytest.approx(expected_mean), \
         f"at {TARGET_DATE.date()}: got {actual}, expected {expected_mean:.4f}"
+
+
+def test_cnt_lag_7_equals_target_from_exactly_7_days_prior():
+    """cnt_lag_7(d) must equal cnt(d-7), not cnt(d-LAG_WARMUP)."""
+    from src.ingest import load_raw
+
+    TARGET_DATE = "2012-03-15"  # Has full history including d-7=2012-02-25
+
+    raw = load_raw()
+    feats = build_features(raw)
+    by_date = feats.set_index("dteday")["cnt"]
+
+    if TARGET_DATE not in by_date.index:
+        pytest.skip(f"{TARGET_DATE} not in dataset; check data coverage")
+
+    target_date = pd.Timestamp(TARGET_DATE)
+    prior_date = target_date - pd.Timedelta(days=7)
+
+    # Check that the prior date exists in our calendar
+    if prior_date not in by_date.index:
+        pytest.skip(f"prior date {prior_date.date()} missing from calendar")
+
+    expected = by_date[prior_date]
+    row_mask = feats.dteday == TARGET_DATE
+    actual = feats.loc[row_mask, "cnt_lag_7"].iloc[0]
+
+    assert actual == pytest.approx(expected), \
+        f"at {target_date.date()}: cnt_lag_7={actual} != target from {prior_date.date()} ({expected})"

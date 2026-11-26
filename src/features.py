@@ -70,10 +70,12 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- Lagged target: past values only. shift(1) is the whole ballgame;
     # without it, cnt_roll_7 would contain today's count. -----------------
-    # If you add a longer lag, raise LAG_WARMUP in src/config.py.
     out["cnt_lag_1"] = out[TARGET].shift(1)
-    out["cnt_lag_7"] = out[TARGET].shift(LAG_WARMUP)
-    out["cnt_roll_7"] = out[TARGET].shift(1).rolling(LAG_WARMUP).mean()
+    out["cnt_lag_7"] = out[TARGET].shift(7)  # fixed 7-day lag, independent of LAG_WARMUP
+    # cnt_roll_7: mean of the 7 calendar days strictly before today
+    out["cnt_roll_7"] = out[TARGET].shift(1).rolling(7).mean()
+    # cnt_roll_28: mean of the 28 calendar days strictly before today
+    out["cnt_roll_28"] = out[TARGET].shift(1).rolling(28).mean()
 
     return out.dropna().reset_index(drop=True)
 
