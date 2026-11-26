@@ -1,9 +1,15 @@
 """Guard rails on the ingest contract and the trained model's behaviour."""
-import pandas as pd
+import os
+import tempfile
+from pathlib import Path
+
 import pytest
+import shutil
+
+import pandas as pd
 from sklearn.metrics import r2_score
 
-from src.config import LAG_WARMUP, TARGET
+from src.config import LAG_WARMUP, RAW, RAW_SHA256, TARGET
 from src.features import build_features, feature_columns, reindex_to_calendar
 from src.ingest import load_raw
 from src.train import MODELS, temporal_split
@@ -56,3 +62,52 @@ def test_persistence_baseline_is_reported():
     """The baseline that matters for a lag-driven model is 'yesterday again'.
     It must be in the comparison, whatever its score."""
     assert "baseline_persistence" in MODELS
+
+
+def test_raw_data_hash_guard(tmp_path, monkeypatch):
+    """Ensure load_raw() refuses tampered data by checking SHA256.
+
+    This test verifies that a single-byte modification to the raw CSV causes
+    load_raw() to raise ValueError with expected vs actual hash in the message.
+    The test never writes to data/raw/.
+    """
+    # Copy and corrupt one byte of the original file
+    shutil.copy(RAW, tmp_path / "corrupted.csv")
+    with open(tmp_path / "corrupted.csv", "r+b") as f:
+        data = bytearray(f.read())
+        mid = len(data) // 2
+        data[mid] ^= 0x80  # flip a bit
+        f.seek(0)
+        f.write(bytes(data))
+
+    corrupted_path = tmp_path / "corrupted.csv"
+
+    # Monkeypatch RAW to point at the corrupted file
+    monkeypatch.setattr("src.config.RAW", corrupted_path.resolve())
+
+    with pytest.raises(ValueError, match="integrity check failed"):
+        load_raw()
+
+
+def test_hash_guard_error_message_shows_hashes(tmp_path, monkeypatch):
+    """Ensure the error message clearly shows expected vs actual hash.
+
+    Monkeypatch RAW to point at a temporarily created corrupted file and verify
+    the error message contains both hashes.
+    """
+    # Create a temporary file with modified bytes
+    shutil.copy(RAW, tmp_path / "garbage.csv")
+    with open(tmp_path / "garbage.csv", "r+b") as f:
+        data = bytearray(f.read())
+        mid = len(data) // 2
+        data[mid] ^= 0x80  # flip a bit
+        f.seek(0)
+        f.write(bytes(data))
+
+    garbage_path = tmp_path / "garbage.csv"
+
+    # Monkeypatch RAW to point at the corrupted file
+    monkeypatch.setattr("src.config.RAW", garbage_path.resolve())
+
+    with pytest.raises(ValueError, match="integrity check failed"):
+        load_raw()

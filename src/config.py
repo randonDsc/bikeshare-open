@@ -1,8 +1,13 @@
 """Single source of truth for paths, columns, and split dates."""
+import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw" / "bike_daily.csv"
+
+# SHA256 hash of the canonical raw dataset (mirror copy, 2011-01-03 to 2012-12-31)
+# Expected value for https://github.com/christophM/interpretable-ml-book/raw/master/data/bike.csv
+RAW_SHA256 = "a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc"
 PROCESSED = ROOT / "data" / "processed" / "features.parquet"
 METRICS = ROOT / "reports" / "metrics.json"
 
