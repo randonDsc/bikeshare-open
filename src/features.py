@@ -25,9 +25,14 @@ def encode_weather(series: pd.Series) -> pd.Series:
     error and no warning.
     """
     known = series.dropna()
-    unknown = set(known.unique()) - set(WEATHER_ORDER)
-    if unknown:
-        raise ValueError(f"unmapped weather labels: {sorted(unknown)}")
+    unmapped = set(known.unique()) - set(WEATHER_ORDER)
+    if unmapped:
+        raise ValueError(
+            f"encode_weather got unmapped labels: {unmapped}. "
+            f"Allowed labels are: {set(WEATHER_ORDER)}. Check data for typos or "
+            f"unexpected categories (e.g., 'SNOW', 'NONE'). The known codes "
+            f"(GOOD, MISTY, BAD) map to severity levels 0-2."
+        )
     return series.map(WEATHER_ORDER).astype(float)
 
 

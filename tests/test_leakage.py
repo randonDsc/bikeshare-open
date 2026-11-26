@@ -136,3 +136,26 @@ def test_cnt_lag_7_equals_target_from_exactly_7_days_prior():
 
     assert actual == pytest.approx(expected), \
         f"at {target_date.date()}: cnt_lag_7={actual} != target from {prior_date.date()} ({expected})"
+
+
+def test_encode_weather_raises_on_unknown_label():
+    """encode_weather must raise ValueError on unseen labels, not silently map to NaN.
+
+    An unseen weather label like 'SNOW' should trigger a loud failure listing
+    the unmapped labels, so we don't drop interesting rows (e.g., cold winter days)
+    with no explanation.
+    """
+    from src.features import encode_weather
+
+    # Create a Series with known labels plus an unknown one
+    series = pd.Series(["GOOD", "MISTY", "BAD", "SNOW", "GOOD"])
+
+    # This should raise ValueError, not return NaN
+    with pytest.raises(ValueError) as exc_info:
+        encode_weather(series)
+
+    # Verify the error message lists the unmapped label
+    assert "SNOW" in str(exc_info.value), \
+        f"Error message should list 'SNOW' as unmapped: {exc_info.value}"
+    assert "unmapped" in str(exc_info.value).lower(), \
+        f"Error message should mention 'unmapped': {exc_info.value}"

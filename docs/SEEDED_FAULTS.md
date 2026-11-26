@@ -89,3 +89,38 @@ make test exit=1
 Predicted catcher: `test_rolling_mean_excludes_today` (it checks one row, `iloc[200]`, and only if its 7-day window is present). Actual: the same.
 
 **Repair.** Fresh Qwen session, same prompt. It ran `make test`, read `src/features.py`, and restored `.shift(1)` in one Edit (its explanation: `.rolling(7)` "includes today's value"). **7 turns, 41 s.** After: `16 passed in 2.13s`
+
+## Fault 3 - the weather encoder's `raise` removed
+
+**Change** (`src/features.py`):
+```diff
+@@ -26,8 +26,6 @@ def encode_weather(series: pd.Series) -> pd.Series:
+     """
+     known = series.dropna()
+     unknown = set(known.unique()) - set(WEATHER_ORDER)
+-    if unknown:
+-        raise ValueError(f"unmapped weather labels: {sorted(unknown)}")
+     return series.map(WEATHER_ORDER).astype(float)
+ 
+ 
+```
+
+**Hook** (`.claude/hooks/check_leakage.sh`, fed the Windows Edit payload) - hook exit=0, stderr tail:
+```
+(empty - the hook printed nothing)
+```
+
+**`make test`** (last lines):
+```
+................                                                         [100%]
+16 passed in 2.14s
+make test exit=0
+```
+
+Predicted: **nothing catches it** -- every label in the data is GOOD/MISTY/BAD, so without the guard the code behaves identically; it only matters for an unseen label. Actual: hook exit 0, 16 passed. **Uncaught**: the suite had no test of the guard itself (the row-loss bound only fires if a label is actually unmapped).
+
+**Repair.** Fresh Qwen session told a reviewer reported the encoder no longer fails loudly. It added `test_encode_weather_raises_on_unknown_label` (`pd.Series(["GOOD","MISTY","BAD","SNOW","GOOD"])` must raise `ValueError` naming `SNOW`) and ran it against the faulty code first:
+```nE       Failed: DID NOT RAISE <class 'ValueError'>
+tests\test_leakage.py:154: Failed
+FAILED tests/test_leakage.py::test_encode_weather_raises_on_unknown_label - F...
+```n then restored the `raise`. **8 turns, 46 s.** After: `17 passed`. With this test, removing the `raise` now turns `make test` red.
