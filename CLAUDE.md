@@ -20,9 +20,20 @@ rides) from calendar, weather, and lagged-demand features.
 - Any new lag or rolling feature must be built on a gap-free calendar
   index (`src.features.reindex_to_calendar`) and must `.shift(1)` before
   it aggregates. Add a test for it in `tests/test_leakage.py`.
+- Window lengths are literals (`shift(7)`, `rolling(28)`). `LAG_WARMUP`
+  (now 28, for `cnt_roll_28`) is only the row-loss bound; never build a
+  feature from it -- that once turned `cnt_lag_7` into a 28-day lag.
+- A new raw column must be added to `ALLOWED_RAW_COLS` or `FORBIDDEN` in
+  `src/config.py`. `data/raw/` is hash-checked (`RAW_SHA256`); never
+  modify it by any route, Bash or Python included.
 - Report the mean baseline **and** the persistence baseline (yesterday's
   count) alongside every model. A negative R^2 is a finding, not a bug
-  to hide.
+  to hide. While iterating, never compute or print test-set numbers.
+
+## Skills
+- `/new-feature <feature>` - add a predictor with its test written first.
+- `/seed-fault <description>` - break one thing, capture hook + test
+  output into `docs/SEEDED_FAULTS.md`, restore, prove green.
 
 ## Style
 - Standard library, pandas, scikit-learn only. No new dependencies
