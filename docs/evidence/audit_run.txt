@@ -1,0 +1,6 @@
+﻿exit 0 wall 256s
+STDOUT: 
+STDERR: ⚠ claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedence over your claude.ai login · Unset it to load your organization's connectors
+[claude-code:unrecognized_model] {"model":"bikeshare-coder","query_source":"sdk"}
+audited 1 repos; 0 flagged -> reports\audit.jsonl
+

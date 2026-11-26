@@ -1,0 +1,13 @@
+diff --git a/src/features.py b/src/features.py
+index d24ce3a..1ed01b5 100644
+--- a/src/features.py
++++ b/src/features.py
+@@ -73,7 +73,7 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
+     out["cnt_lag_1"] = out[TARGET].shift(1)
+     out["cnt_lag_7"] = out[TARGET].shift(7)  # fixed 7-day lag, independent of LAG_WARMUP
+     # cnt_roll_7: mean of the 7 calendar days strictly before today
+-    out["cnt_roll_7"] = out[TARGET].shift(1).rolling(7).mean()
++    out["cnt_roll_7"] = out[TARGET].rolling(7).mean()
+     # cnt_roll_28: mean of the 28 calendar days strictly before today
+     out["cnt_roll_28"] = out[TARGET].shift(1).rolling(28).mean()
+ 

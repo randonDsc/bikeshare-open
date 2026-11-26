@@ -1,14 +1,12 @@
 # Audit of a teammate's repository (Exercise 3)
 
-**Repository audited:** https://github.com/Cheng-I-Lin/bikeshare-open (a teammate's real
-submission repo, not a generated practice repo), at commit `dab0405`.
+**Repository audited:** https://github.com/Cheng-I-Lin/bikeshare-open, at commit `dab0405`.
 **Diff under review:** `git diff d049708 HEAD` — everything after their unmodified starter
 commit (14 files: `src/features.py`, `src/config.py`, `tests/`, `.claude/settings.json`,
 `.gitignore`, `experiment_hgb_log.py`, docs, reports).
 **Auditor:** the `leakage-auditor` subagent (`.claude/agents/leakage-auditor.md`), run from
 this repo in a headless Claude Code session on Qwen 3.5 9B (`bikeshare-coder`), with read
-access to the teammate's clone and Write/Edit denied. Transcript: `logs/qwen/E3_leakage_auditor.jsonl`
-(2 turns, 67 s; the subagent read files and ran their test suite).
+access to the teammate's clone and Write/Edit denied. Full transcript retained locally (2 turns, 67 s; the subagent read files and ran their test suite). The original report is in `evidence/E3_auditor_report.txt`.
 
 ## Auditor output (verbatim)
 
@@ -44,7 +42,7 @@ All 19 tests pass. The diff introduces one new feature (`test_temp_hum_interacti
 
 ## My verdict
 
-I agree with the auditor's findings regarding leakage and temporal splitting. However, it
-missed the inconsistency between the decision to drop the temperature-humidity feature and its
-inclusion in the final pipeline. This changes the reported metrics slightly, although it does
-not change the overall conclusion.
+I agree that the new feature does not leak the target and that the data is split correctly.
+The auditor missed one issue: my partner decided to drop the temperature-humidity feature, but
+it is still in the final pipeline. Removing it changes ridge's test R² from 0.5835 to 0.5833.
+The difference is small enough that my overall conclusion stays the same.

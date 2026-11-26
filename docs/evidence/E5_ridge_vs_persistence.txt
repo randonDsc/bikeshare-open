@@ -1,0 +1,27 @@
+﻿ridge standardised coefficients:
+cnt_roll_7          403.0
+cnt_lag_1           321.0
+weather_severity   -290.0
+temp                228.0
+cnt_roll_28         165.0
+windspeed          -160.0
+hum                -121.0
+is_holiday          -74.0
+atemp               -70.0
+cnt_lag_7           -47.0
+month_cos           -29.0
+dayofweek           -24.0
+is_workday           19.0
+month_sin            10.0
+is_weekend            8.0
+
+TEST (184 days)   ridge   persistence
+MAE                879.3    840.1
+median abs err     806.5    506.5
+RMSE              1067.8   1219.0
+90th pct err      1711.1   1960.2
+max err           4114.7   4470.0
+days ridge closer: 0.429
+days with |cnt - yesterday| > 2000: 17  ridge MAE there 1823, persistence 3019
+other days: ridge MAE 783, persistence 618
+mean bias (pred - actual): ridge -427, persistence 16

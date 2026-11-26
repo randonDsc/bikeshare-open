@@ -1,8 +1,7 @@
 # Forecasting daily bikeshare demand — report
 
 Daily Capital Bikeshare rides (`cnt`), Washington DC. Train = 2011, validation = H1 2012,
-test = H2 2012, split by date. Reproduce everything below with `make all` (numbers in
-`reports/metrics.json`); `make test` runs 20 tests.
+test = H2 2012, split by date. Run `make all` to reproduce the final metrics in `reports/metrics.json`. Run `make test` for the 20 tests.
 
 ## Results
 
@@ -27,7 +26,7 @@ The mean baseline's change is not the feature: it predicts the training mean, an
 dropped days are low-ridership January days. To isolate the feature, ridge and hgb were refit
 on the same 306 training days with and without `cnt_roll_28` (validation only): ridge
 0.6462 → 0.6839 (MAE 835.5 → 777.5), hgb 0.1929 → 0.2415. Dropping the rows alone moves
-ridge 0.6475 → 0.6462. The test set was evaluated once, after all feature and model choices.
+ridge 0.6475 → 0.6462. The feature decision was based on validation. During Exercise 4, Qwen printed test scores earlier than requested (see below).
 
 ## Headline finding
 
@@ -39,12 +38,11 @@ level for late 2012. Ridge reaches test R² 0.624 against a persistence baseline
 loses to it on MAE (879 vs 840 rides). Gradient boosting fails (test R² −0.46, though it still
 beats the mean baseline) because a tree cannot predict above the largest count it saw in
 training, and 56% of test days exceed the 2011 maximum of 6,043. Adding `cnt_roll_28` raised
-ridge's validation R² from 0.646 to 0.684 on identical training rows; I kept it.
+ridge's validation R² from 0.646 to 0.684 on identical training rows. I kept the feature because both models improved even after accounting for the shorter training period.
 
 ## Exercise 4: target transformation
 
-A tree fails here because the target drifts out of its training range, so the fix has to make
-the target stationary. Three transforms were tried for hgb (code behind
+The tree struggles because demand grows beyond the range it saw in training. I tried expressing demand on a more stable scale. Three transforms were tried for hgb (code behind
 `python -m src.train --target-transform {log,diff,ratio} --out PATH`; the committed metrics
 are untransformed). Predictions are inverted before scoring, so R²/MAE are on rides.
 
@@ -58,18 +56,14 @@ are untransformed). Predictions are inverted before scoring, so R²/MAE are on r
 
 `log` does not help: it compresses the scale but the drift is still out of range. The ratio
 works for a measurable reason: 39% of validation days exceed the 2011 maximum count, but **0%**
-exceed the 2011 maximum ratio (train 0.15–2.00, valid 0.17–1.85). Everything in the transform
-is known at prediction time. Applied to ridge, the same ratio *hurts* (0.4039), because the
-inverse multiplies a linear model's error by the level.
+exceed the 2011 maximum ratio (train 0.15–2.00, valid 0.17–1.85). The denominator uses only past demand, so it is available at prediction time. The same transformation reduced ridge's validation R² to 0.4039.
 
-**Verdict: defensible, with limits.** The mechanism is sound — it removes the extrapolation
-problem using a quantity known at prediction time, which is ordinary detrending, not leakage.
-But the ratio was chosen as the best of three on the same 182 validation days and applied only
-to the model that needed rescuing, so it does not support a fair "hgb ties ridge" claim.
-Touched once at the end, hgb + ratio scored test R² 0.6392 / MAE 744.2 (ridge 0.6239 / 879.3);
-a pre-registered choice and a fresh test period would be needed before believing that ordering.
-Integrity note: during this exploration the agent printed test-set numbers despite explicit
-instructions not to; no decision was taken on them.
+**My decision:** I think the ratio is reasonable because it adjusts for growth using past demand.
+However, I selected it after comparing three transformations on the same validation set.
+Qwen also printed test scores during this process despite the instruction to use validation only.
+The final ratio run produced test R² 0.6392 and MAE 744.2, compared with ridge's 0.6239 and
+879.3. I would need a new test period before concluding that boosting is competitive with ridge.
+I kept the original, untransformed pipeline for the submitted metrics.
 
 ## Exercise 5: ridge vs persistence
 
@@ -88,21 +82,21 @@ Persistence is closer on 57% of days; ridge is far better on the shocks. Ridge i
 "yesterday again": besides `cnt_roll_7` (+403) and `cnt_lag_1` (+321), its largest standardised
 coefficients are weather — `weather_severity` −290, `temp` +228, `windspeed` −160.
 
-**I would deploy ridge.** The misses that cost money in a bikeshare system are the large ones —
-a storm, a holiday, a sudden drop — because they decide where bikes and staff must be moved.
-Ridge cuts those errors by about 40% (1823 vs 3019 on swing days; RMSE 1068 vs 1219) and uses
-weather that persistence cannot. Its MAE loss is mostly a level bias: trained on 2011, it
-under-predicts growing 2012 demand by 427 rides a day on average, which periodic retraining
-corrects; persistence has no such lever.
+**I would deploy ridge.** Although persistence has a lower overall MAE (840 vs 879), I care
+more about large prediction errors when deciding how many bikes to allocate. On the 17 days
+with large demand changes, ridge reduced MAE from 3,019 to 1,823, about 40%. Ridge also uses
+weather information that persistence ignores. It does underestimate demand by 427 rides per
+day on average. I would retrain it with more recent data and check whether that reduces the
+bias before relying on it in practice.
 
 ## Attribution
 
 **Model:** `qwen3.5:9b` via Ollama (built as `bikeshare-coder`, Q4_K_M, 64k context), driven
 by Claude Code in headless sessions. I started on `qwen3.5:27b` and switched after Step 2: on
-this laptop the 27B ran 56% on CPU (~1–2 min per action). The 27B's only run (Step 2) was
+my desktop the 27B ran 56% on CPU (~1–2 min per action). The 27B's only run (Step 2) was
 under a broken permission setup and is not compared. Claude Opus 5.5 orchestrated the Qwen
 sessions, verified every result against the data, fixed infrastructure, and drafted the
-write-ups for my review. Transcripts of every Qwen session are kept locally (`logs/qwen/`).
+write-ups for my review. Full Qwen transcripts are retained locally. Selected original outputs are included in `docs/evidence/`. ChatGPT assisted with the final wording and evidence organization.
 
 **Generated by the agent (Qwen 9B unless noted)**
 - `src/features.py`: `cnt_roll_28`; `cnt_lag_7 = shift(7)` fix (after its first version silently made it a 28-day lag); weather `raise` restored.
@@ -118,6 +112,6 @@ write-ups for my review. Transcripts of every Qwen session are kept locally (`lo
 - Feature `cnt_roll_28`, and keeping it.
 - Hook fix applied by Opus rather than by Qwen; model switch to 9B; graded-work-only scope.
 - Exercise 4 verdict (defensible, with limits); Exercise 5 verdict (deploy ridge).
-- Exercise 3 verdict on the teammate audit (`docs/AUDIT.md`), and on our own batch audit: `reports/audit.jsonl` flags nothing (leakage none, temporal and baselines OK), so there was nothing to fix or dispute.
-- My skill: `seed-fault`.
+- Exercise 3 verdict on the teammate audit (`docs/AUDIT.md`), and on our own batch audit: `reports/audit.jsonl` reports no leakage or temporal/baseline violations, so there was nothing to fix or dispute.
+- I chose and approved the workflow for `seed-fault`; Opus drafted its text.
 - Whether the answer is believable: the ridge result yes, with the persistence and bias caveats above; the Exercise 4 hgb-vs-ridge ordering, not yet.

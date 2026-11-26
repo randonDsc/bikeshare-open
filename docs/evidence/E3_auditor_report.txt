@@ -1,0 +1,13 @@
+All five checks pass:
+
+1. **Target leakage**: Verified via tests (`test_no_forbidden_features`, `test_leakage_identity_holds`). `test_temp_hum_interaction` is derived from allowed columns (temp, hum), not the target.
+
+2. **Temporal ordering**: `temporal_split()` uses date-based splitting (TRAIN_END=2011-12-31, VALID_END=2012-06-30). Models fit on train only; no validation/test leakage.
+
+3. **Calendar gaps**: `reindex_to_calendar` is called before any lag feature, ensuring contiguous calendar index for `.shift()` semantics.
+
+4. **Silent row loss**: `.dropna()` after lagging is bounded by LAG_WARMUP=7 in config.py; test bounds this explicitly.
+
+5. **Unreported baseline**: Both `baseline_mean` and `baseline_persistence` are reported alongside every model in metrics.json (valid and test splits for all four models).
+
+All 19 tests pass. The diff introduces one new feature (`test_temp_hum_interaction`) that is correctly handled per project rules: it's a derived feature from allowed raw columns, not forbidden, and its addition/deprecation is documented in docs/DECISIONS.md.

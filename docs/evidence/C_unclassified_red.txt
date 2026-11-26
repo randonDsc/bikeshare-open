@@ -1,0 +1,10 @@
+﻿
+E       AssertionError: Found 1 columns in raw data that are not classified: ['sensor_x']. All new columns must be 
+added to src/config.py. Allowed: ALLOWED_RAW_COLS=['atemp', 'dteday', 'holiday', 'hum', 'mnth', 'season', 'temp', 
+'weather', 'weekday', 'windspeed', 'workday'], Forbidden: FORBIDDEN=['casual', 'cnt', 'cnt_2d_bfr', 'days_since_2011', 
+'instant', 'registered', 'yr']
+E       assert {'sensor_x'} == set()
+E         
+E         Extra items in the left set:
+
+

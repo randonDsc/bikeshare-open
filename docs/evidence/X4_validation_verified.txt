@@ -1,0 +1,14 @@
+﻿default run reproduces pre-Ex4 metrics: True | target_transform: None
+transform   hgb valid R2  hgb MAE  ridge valid R2 ridge MAE
+none              0.2415   1296.6          0.6839     777.5
+log               0.1855   1324.2          0.6839     777.5
+diff              0.6138    829.9          0.6839     777.5
+ratio             0.6754    732.4          0.6839     777.5
+persistence valid R2 0.4507 MAE 900.6
+reports/metrics.json untouched by --out runs: True
+ridge ratio valid R2 0.4039  MAE 1069.0
+ridge diff  valid R2 0.6837  MAE 776.9
+hgb   ratio valid R2 0.6754  MAE 732.4
+hgb   diff  valid R2 0.6138  MAE 829.9
+2011 train cnt max 6043.0 | valid days above it: 0.39
+ratio target range train [0.15, 2.00]  valid [0.17, 1.85]  valid days above train max ratio: 0.000

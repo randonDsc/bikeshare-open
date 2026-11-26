@@ -1,11 +1,17 @@
-﻿# Seeded faults (Exercise 2)
+# Seeded faults (Exercise 2)
 
 Agent: Qwen 3.5 9B (`bikeshare-coder`, Ollama, 64k context) in headless Claude Code
-sessions. Each fault was seeded by Qwen through `/seed-fault` (so the edit went
-through the Edit tool and the PostToolUse hook), then repaired by a *fresh*
-Qwen session told only that `make test` was red. "Turns" is the session's
-`num_turns` from the Claude Code result message. Transcripts: `logs/qwen/E2*`.
+sessions. Faults were introduced during the supervised seed-fault experiments. The first fault also triggered the hook during a live Qwen edit; other hook checks used the Windows Edit payload. Repairs were run in fresh Qwen sessions. "Turns" is the session's
+`num_turns` from the Claude Code result message. Full transcripts are retained locally. Selected original outputs are included in `evidence/`.
 Output below is pasted from those runs, not paraphrased.
+
+## Exercise 1: failing test before the feature
+
+The new feature test was committed before the implementation (commit `00103a4`).
+The original failing output is in [evidence/E1_failing_test_red.txt](evidence/E1_failing_test_red.txt).
+The assertion failed because `cnt_roll_28` was missing; 1 failed, 7 deselected.
+The subsequent feature commit is `9252a75`. The additional lag regression evidence is in
+[evidence/E1_lag7_bug_red.txt](evidence/E1_lag7_bug_red.txt).
 
 ## Fault 1 - a forbidden column added to `feature_columns`
 
@@ -43,7 +49,7 @@ make test exit=1
 ```
 
 **Hook inside a live Qwen session.** When Qwen seeded this same fault itself via `/seed-fault`
-(`logs/qwen/E2_f1_seed.jsonl`), Claude Code returned to the agent, immediately after its Edit:
+(full transcript retained locally), Claude Code returned to the agent, immediately after its Edit:
 `PostToolUse:Edit hook blocking error from command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/check_leakage.sh": ... Leakage tests failed after editing C:/mine/ucsd/senior_fallq/dsc180_a/bikeshare-open/src/features.py: ... AssertionError: forbidden columns in feature set: {'casual'}`.
 (That session also ignored "steps 1-3 only, do not restore" and undid its own fault, so its 1-turn "fix" is not counted.)
 
@@ -120,15 +126,17 @@ make test exit=0
 Predicted: **nothing catches it** -- every label in the data is GOOD/MISTY/BAD, so without the guard the code behaves identically; it only matters for an unseen label. Actual: hook exit 0, 16 passed. **Uncaught**: the suite had no test of the guard itself (the row-loss bound only fires if a label is actually unmapped).
 
 **Repair.** Fresh Qwen session told a reviewer reported the encoder no longer fails loudly. It added `test_encode_weather_raises_on_unknown_label` (`pd.Series(["GOOD","MISTY","BAD","SNOW","GOOD"])` must raise `ValueError` naming `SNOW`) and ran it against the faulty code first:
-```nE       Failed: DID NOT RAISE <class 'ValueError'>
+```text
+E       Failed: DID NOT RAISE <class 'ValueError'>
 tests\test_leakage.py:154: Failed
 FAILED tests/test_leakage.py::test_encode_weather_raises_on_unknown_label - F...
-```n then restored the `raise`. **8 turns, 46 s.** After: `17 passed`. With this test, removing the `raise` now turns `make test` red.
+```
+Then restored the `raise`. **8 turns, 46 s.** After: `17 passed`. With this test, removing the `raise` now turns `make test` red.
 
 ## Fault 4 - overwriting `data/raw/` from Bash (the fault the PostToolUse hook cannot see)
 
 Tampered copy: 2012-07-04 `temp` 29.090849 -> 5.000000, nothing else changed. Qwen 9B was told to try each route
-(`logs/qwen/E2_f4_cp*.jsonl`):
+(full transcripts retained locally):
 
 | Route | Result |
 |---|---|

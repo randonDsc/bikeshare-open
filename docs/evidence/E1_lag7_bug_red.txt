@@ -1,0 +1,6 @@
+﻿
+E         comparison failed
+FAILED tests/test_leakage.py::test_cnt_lag_7_equals_target_from_exactly_7_days_prior
+1 failed, 15 passed in 2.49s
+
+

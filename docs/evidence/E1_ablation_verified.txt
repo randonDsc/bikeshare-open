@@ -1,0 +1,5 @@
+﻿n_train 306 n_valid 182
+ridge same 306 rows, without cnt_roll_28: valid R2 0.6462  MAE 835.5
+ridge same 306 rows, with    cnt_roll_28: valid R2 0.6839  MAE 777.5
+hgb   same 306 rows, without cnt_roll_28: valid R2 0.1929  MAE 1330.6
+hgb   same 306 rows, with    cnt_roll_28: valid R2 0.2415  MAE 1296.6
