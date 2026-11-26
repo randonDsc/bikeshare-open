@@ -256,5 +256,5 @@ if __name__ == "__main__":
     res = fit_and_score(target_transform=args.target_transform, out_path=args.out)
     dest = Path(args.out) if args.out else METRICS
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(json.dumps(res, indent=2))
+    dest.write_text(json.dumps(res, indent=2), newline="\n")
     print(json.dumps({k: v for k, v in res.items() if k != "features"}, indent=2))
